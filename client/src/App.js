@@ -27,7 +27,7 @@ function App() {
     share: true,
     filter: () => false,
     retryOnError: true,
-    shouldReconnect: () => true,
+    shouldReconnect: () => true, 
   });
 
   useEffect(() => {

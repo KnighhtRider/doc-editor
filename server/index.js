@@ -1,13 +1,15 @@
+const express = require('express');
 const { WebSocket, WebSocketServer } = require('ws');
 const http = require('http');
 const uuidv4 = require('uuid').v4;
 
-// Spinning the http server and the WebSocket server.
-const server = http.createServer();
+// wrap the http server with the WebSocket server.
+const app = express();
+const server = http.createServer(app);
 const wsServer = new WebSocketServer({ server });
 const port = 8000;
 server.listen(port, () => {
-  console.log(`WebSocket server is running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
 
 // I'm maintaining all active connections in this object
@@ -16,8 +18,6 @@ const clients = {};
 const users = {};
 // The current editor content is maintained here.
 let editorContent = null;
-// User activity history.
-let userActivity = [];
 
 // Event types
 const typesDef = {
@@ -41,11 +41,10 @@ function handleMessage(message, userId) {
   const json = { type: dataFromClient.type };
   if (dataFromClient.type === typesDef.USER_EVENT) {
     users[userId] = dataFromClient;
-    userActivity.push(`${dataFromClient.username} joined to edit the document`);
-    json.data = { users, userActivity };
+    json.data = { users };
   } else if (dataFromClient.type === typesDef.CONTENT_CHANGE) {
     editorContent = dataFromClient.content;
-    json.data = { editorContent, userActivity };
+    json.data = { editorContent };
   }
   broadcastMessage(json);
 }
@@ -54,8 +53,7 @@ function handleDisconnect(userId) {
     console.log(`${userId} disconnected.`);
     const json = { type: typesDef.USER_EVENT };
     const username = users[userId]?.username || userId;
-    userActivity.push(`${username} left the document`);
-    json.data = { users, userActivity };
+    json.data = { users };
     delete clients[userId];
     delete users[userId];
     broadcastMessage(json);
